@@ -10,6 +10,8 @@ crate-type = ["cdylib", "rlib"]
 library = []
 
 [dependencies]
+cw2 = { path = "../cw2"}
+cw20 = { path = "../cw20"}
 cosmwasm-std = { version = "1.2.6" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 cw-storage-plus = "0.15.1"
@@ -19,6 +21,7 @@ cosmwasm-schema = "1.1.4"
 sha2 = "0.10.6"
 cosmwasm-crypto = "1.2.6"
 base64ct = "1.6.0"
+cw721 = {path = "../cw721"}
 
 [dev-dependencies]
 cw-multi-test = "0.13.4"
