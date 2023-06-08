@@ -36,7 +36,6 @@ pub fn execute(
 }  
 
 mod execute {
-
     use super::*;
 
     pub fn register(
@@ -65,9 +64,6 @@ mod execute {
         
         let mut curr_list = LIST.load(deps.storage, listforbuyer.tokenid_want)?;
 
-        if curr_list.tokenid != 0 {
-            return Err(StdError::generic_err("token is not in sell list"));
-        }
 
         if curr_list.amountof_erc20 != listforbuyer.token_amount {
             return Err(StdError::generic_err("ERC20 token amount not matched"));
@@ -97,7 +93,6 @@ mod execute {
         })];
 
         LIST.remove(deps.storage, listforbuyer.tokenid_want);
-        let empty = LIST.may_load(deps.storage, listforbuyer.tokenid_want)?;
 
         let res = Response::new()
         .add_attribute("action", "transfer")
@@ -116,15 +111,76 @@ mod execute {
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coin, coins, CosmosMsg, StdError, Uint128};
-
+    use cosmwasm_std::{ StdError};
     use crate::msg::ExecuteMsg;
-
+    use ExecuteMsg::*;
     use super::*;
 
     #[test]
-    fn register() {
-        
+    fn register_execute() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate(
+            deps.as_ref(),
+            env.clone(),
+            mock_info("sender", &[]),
+            Empty {},
+        )
+        .unwrap();
+
+        let list = OrderListForERC721 {
+            owner: Addr::unchecked("owner"),
+            contractaddress:Addr::unchecked("contract"),
+            tokenid: 2,
+            amountof_erc20:200
+        };
+        let msg = Register { listforseller: list };
+
+        let res = execute(deps.as_mut(), env.clone(), mock_info("owner", &[]), msg.clone());
+        assert_eq!(res, Ok(Response::new()));
+
+        let res = execute(deps.as_mut(), env, mock_info("owner", &[]), msg);
+        assert_eq!(res, Err(StdError::generic_err("token is already present")));
+
+    }
+
+    #[test]
+    fn execute_exchange() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let list = OrderListForERC721 {
+            owner: Addr::unchecked("owner"),
+            contractaddress:Addr::unchecked("contract"),
+            tokenid: 2,
+            amountof_erc20:200
+        };
+        let msg = Register { listforseller: list.clone() };
+
+        let res = execute(deps.as_mut(), env.clone(), mock_info("owner", &[]), msg.clone());
+        assert_eq!(res, Ok(Response::new()));
+
+        let listForbuyer: OrderListForERC20 = OrderListForERC20 {
+            owner: Addr::unchecked("buyer"),
+            contractaddress: Addr::unchecked("ERC271contract"),
+            token_amount: 200,
+            tokenid_want: 2
+        };
+
+        let msg = Exchange { listforbuyer: listForbuyer.clone() };
+        let res = execute(deps.as_mut(), env.clone(), mock_info("buyer", &[]), msg.clone());
+        let responsexpected = Response::new().add_attribute("action", "transfer")
+        .add_attribute("from", listForbuyer.owner.clone())
+        .add_attribute("to", list.owner.clone())
+        .add_attribute("amount", listForbuyer.token_amount.to_string())
+        .add_attribute("action", "transfer_erc721")
+        .add_attribute("sender", list.owner)
+        .add_attribute("recipient", listForbuyer.owner)
+        .add_attribute("token_id", list.tokenid.to_string());
+        println!("{:?}", res);
+        assert_eq!(res.unwrap(), responsexpected);
+
     }
 
 }
