@@ -1,34 +1,50 @@
-[package]
-name = "contract"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["packages/*", "contracts/*"]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-[features]
-library = []
+[profile.release.package.cw721-base]
+codegen-units = 1
+incremental = false
 
-[dependencies]
-cw2 = { path = "../cw2"}
-cw20 = { path = "../cw20"}
-cosmwasm-std = { version = "1.2.6" }
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-cw-storage-plus = "0.15.1"
-thiserror = "1"
-schemars = "0.8.1"
-cosmwasm-schema = "1.1.4"
-sha2 = "0.10.6"
-cosmwasm-crypto = "1.2.6"
-base64ct = "1.6.0"
-cw721 = {path = "../cw721"}
-cw-utils = "1.0.1"
-secp256k1 = "0.27.0"
-key = "0.0.0"
-hex = "0.4.3"
-sha3 = "0.10.8"
-ethereum-types = "0.14.1"
-ring = "0.16"
-rand_core="0.6.3"
+[profile.release.package.exchange-token]
+codegen-units = 1
+incremental = false
 
-[dev-dependencies]
-cw-multi-test = "0.13.4"
+[profile.release.package.cw1-subkeys]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw1-whitelist]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw3-fixed-multisig]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw3-flex-multisig]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw4-group]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw4-stake]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw20-base]
+codegen-units = 1
+incremental = false
+
+[profile.release.package.cw20-ics20]
+codegen-units = 1
+incremental = false
+
+[profile.release]
+rpath = false
+lto = true
+overflow-checks = true
+opt-level = 3
+debug = false
+debug-assertions = false

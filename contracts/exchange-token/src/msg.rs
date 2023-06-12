@@ -1,7 +1,6 @@
 use cosmwasm_schema::{cw_serde};
 use cosmwasm_std::Addr;
 
-
 #[cw_serde]
 pub enum ExecuteMsg {
     Register {
@@ -26,4 +25,5 @@ pub struct OrderListForERC20 {
     pub contract_address: Addr,
     pub amount_of_erc20: u32,
     pub erc721_token_id_want: u32,
+    pub erc721_contract_address: Addr,
 }
