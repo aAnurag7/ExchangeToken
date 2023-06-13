@@ -1,11 +1,12 @@
 use crate::msg::{ExecuteMsg, OrderListForERC20, OrderListForERC721, QueryMsg};
+use crate::helper;
 use crate::state::LIST;
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo,
-    Response, StdError, StdResult, SubMsg, WasmMsg, CosmosMsg
+    Response, StdError, StdResult
 };
-use cw20::Cw20ExecuteMsg;
-use cw721::Cw721ExecuteMsg;
+use crate::auction::auction;
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -28,7 +29,7 @@ pub fn query(deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
 mod query {
     use super::*;
     use cosmwasm_std::Addr;
-    pub fn order_list(deps: Deps, id:u32, contract_address: Addr ) -> StdResult<OrderListForERC721>{
+    pub fn order_list(deps: Deps, id:u64, contract_address: Addr ) -> StdResult<OrderListForERC721>{
         let list = LIST.load(deps.storage, (id, contract_address))?;
         Ok(list)
     }
@@ -37,14 +38,16 @@ mod query {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> StdResult<Response> {
     use ExecuteMsg::*;
-    match _msg {
+    match msg {
         Register { list_for_seller } => execute::register(deps, list_for_seller),
         Exchange { list_for_buyer } => execute::exchange(deps, list_for_buyer),
+        EnglishBidRegister { list_for_buyer } => auction::english_auction(deps, env, list_for_buyer),
+        ExchangeEnglishBid { list_for_buyer } => auction::english_bid_exchange(deps, info, env, list_for_buyer),
     }
 }
 
@@ -83,48 +86,11 @@ mod execute {
             ),
         )?;
 
-        if curr_list.amount_of_erc20_want != list_for_buyer.amount_of_erc20 {
+        if curr_list.highest_bid != list_for_buyer.amount_of_erc20 {
             return Err(StdError::generic_err("ERC20 token amount not matched"));
         }
 
-        let msg = Cw20ExecuteMsg::TransferFrom {
-            owner: list_for_buyer.owner.to_string().clone(),
-            recipient: curr_list.owner.to_string().clone(),
-            amount: list_for_buyer.amount_of_erc20.into(),
-        };
-
-        let msg_nft = Cw721ExecuteMsg::TransferNft {
-            recipient: list_for_buyer.owner.clone().into(),
-            token_id: list_for_buyer.erc721_token_id_want.clone().to_string(),
-        };
-
-        let exec: Vec<SubMsg> = vec![
-            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: list_for_buyer.contract_address.clone().to_string(),
-                msg: to_binary(&msg).unwrap(),
-                funds: vec![]
-            })),
-            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: curr_list.contract_address.to_string(),
-                msg: to_binary(&msg_nft).unwrap(),
-                funds: vec![]
-            })),
-        ];
-
-        LIST.remove(deps.storage, (list_for_buyer.erc721_token_id_want, list_for_buyer.erc721_contract_address));
-
-        let res = Response::new()
-            .add_attribute("action", "transfer")
-            .add_attribute("from", list_for_buyer.owner.clone())
-            .add_attribute("to", curr_list.owner.clone())
-            .add_attribute("amount", list_for_buyer.amount_of_erc20.to_string())
-            .add_attribute("action", "transfer_erc721")
-            .add_attribute("sender", curr_list.owner)
-            .add_attribute("recipient", list_for_buyer.owner)
-            .add_attribute("token_id", curr_list.erc721_token_id.to_string())
-            .add_submessages(exec);
-
-        Ok(res)
+        helper::exchange(deps, list_for_buyer.clone(), curr_list, list_for_buyer.amount_of_erc20)
     }
 }
 
@@ -133,7 +99,9 @@ mod tests {
     use super::*;
     use crate::msg::ExecuteMsg;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{StdError, Addr};
+    use cosmwasm_std::{StdError, Addr, Timestamp, SubMsg, WasmMsg};
+    use cw20::Cw20ExecuteMsg;
+    use cw721::Cw721ExecuteMsg;
     use ExecuteMsg::*;
     use QueryMsg::*;
     #[test]
@@ -153,7 +121,10 @@ mod tests {
             owner: Addr::unchecked("owner"),
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id: 2,
-            amount_of_erc20_want: 200,
+            highest_bid: 200,
+            time: Timestamp::from_seconds(0),
+            highest_bidder: Addr::unchecked(""),
+            erc20_amount_after_time: 0
         };
         
         let msg = Register {
@@ -176,7 +147,10 @@ mod tests {
             owner: Addr::unchecked("owner")  ,
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id:2,
-            amount_of_erc20_want: 200
+            highest_bid: 200,
+            time: Timestamp::from_seconds(0),
+            highest_bidder: Addr::unchecked(""),
+            erc20_amount_after_time: 0
         };
         assert_eq!(result,to_binary(&a).unwrap());
     }
@@ -190,7 +164,10 @@ mod tests {
             owner: Addr::unchecked("owner"),
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id: 2,
-            amount_of_erc20_want: 200,
+            highest_bid: 200,
+            time: Timestamp::from_seconds(0),
+            highest_bidder: Addr::unchecked(""),
+            erc20_amount_after_time: 0
         };
         let msg = Register {
             list_for_seller: list.clone(),

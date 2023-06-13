@@ -1,9 +1,9 @@
 
 #[cfg(test)]
 mod multest {
-    use cw_multi_test::{App, ContractWrapper, Executor, AppResponse};
+    use cw_multi_test::{App, ContractWrapper, Executor};
     use crate::contract::{execute, instantiate, query};
-    use cosmwasm_std::{Addr, Empty, Uint128, Response};
+    use cosmwasm_std::{Addr, Empty, Uint128, Timestamp};
     use crate::msg::{ExecuteMsg::*, OrderListForERC20, OrderListForERC721};
 
     use cw20_base::{ msg::{ExecuteMsg as cw20_executeMsg, InstantiateMsg as cw20_instantiateMsg, QueryMsg as cw20_queryMsg} ,contract::{execute as cw20execute , query as cw20query, instantiate as cw20instantiate}};
@@ -60,7 +60,7 @@ mod multest {
         )
         .unwrap();
 
-        let res_approve_cw20 = app.execute_contract(buyer.clone(), addr_cw20.clone(), &cw20_executeMsg::IncreaseAllowance { spender: addr.to_string(), amount: Uint128::new(200), expires: None }, &[]);
+        let _res_approve_cw20 = app.execute_contract(buyer.clone(), addr_cw20.clone(), &cw20_executeMsg::IncreaseAllowance { spender: addr.to_string(), amount: Uint128::new(200), expires: None }, &[]);
 
         let addr_cw721 = app.instantiate_contract(
             code_id_cw721,
@@ -75,7 +75,7 @@ mod multest {
             None
         ).unwrap();
 
-        let re_mint_cw721 = app.execute_contract(seller.clone(), 
+        let _re_mint_cw721 = app.execute_contract(seller.clone(), 
         addr_cw721.clone(),
         &Cw721ExecuteMsg::Mint { 
             token_id: 2.to_string(),
@@ -85,7 +85,7 @@ mod multest {
         &[]
         );
 
-        let re_approve_cw721 = app.execute_contract(seller.clone(), 
+        let _re_approve_cw721 = app.execute_contract(seller.clone(), 
         addr_cw721.clone(),
          &Cw721ExecuteMsg::Approve { spender: addr.to_string(), token_id: 2.to_string(), expires: None },
         &[],
@@ -95,13 +95,16 @@ mod multest {
             owner: seller.clone(),
             contract_address:addr_cw721.clone(),
             erc721_token_id: 2,
-            amount_of_erc20_want: 200,
+            highest_bid: 200,
+            time: Timestamp::from_seconds(60*60),
+            highest_bidder: Addr::unchecked(""),
+            erc20_amount_after_time: 0
         };
         let msg = Register {
             list_for_seller: list,
         };
 
-        let resp = app.execute_contract(Addr::unchecked(exchange_owner.clone()), addr.clone(), &msg, &[]).unwrap();
+        let _resp = app.execute_contract(Addr::unchecked(exchange_owner.clone()), addr.clone(), &msg, &[]).unwrap();
 
         let list = OrderListForERC20 {
             owner: buyer.clone(),
@@ -113,7 +116,7 @@ mod multest {
         let msg = Exchange {
             list_for_buyer: list,
         };
-        let resp = app.execute_contract(Addr::unchecked(exchange_owner), addr.clone(), &msg, &[]).unwrap();
+        let _resp = app.execute_contract(Addr::unchecked(exchange_owner), addr.clone(), &msg, &[]).unwrap();
 
         let resp:BalanceResponse = app
         .wrap()
