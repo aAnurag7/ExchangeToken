@@ -43,29 +43,23 @@ mod execute {
         deps: DepsMut,
         list_for_seller: OrderListForERC721,
     ) -> StdResult<Response> {
-        let curr = LIST.load(
+
+        LIST.update(
             deps.storage,
             (
                 list_for_seller.erc721_token_id.clone(),
                 list_for_seller.contract_address.clone(),
             ),
-        ).ok().ok_or_else(|| {
-            LIST.save(
-                deps.storage,
-                (
-                    list_for_seller.erc721_token_id.clone(),
-                    list_for_seller.contract_address.clone(),
-                ),
-                &list_for_seller,
-            )
-        });
+            |res| {
+                if res.is_some() {
+                    return Err(StdError::generic_err("token is already present"));
+                }
 
-        if curr == Err(Ok(())) {
-            return Ok(Response::new());
-        }
+                Ok(list_for_seller)
+            }
+        )?;
 
-        return Err(StdError::generic_err("token is already present"));
-        
+        Ok(Response::new())   
     }
 
     pub fn exchange(deps: DepsMut, list_for_buyer: OrderListForERC20) -> StdResult<Response> {
