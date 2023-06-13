@@ -1,4 +1,4 @@
-use crate::msg::{ExecuteMsg, OrderListForERC20, OrderListForERC721};
+use crate::msg::{ExecuteMsg, OrderListForERC20, OrderListForERC721, QueryMsg};
 use crate::state::LIST;
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo,
@@ -18,8 +18,20 @@ pub fn instantiate(
 }
 
 #[allow(dead_code)]
-pub fn query(_deps: Deps, _env: Env, _msg: Empty) -> StdResult<Binary> {
-    to_binary("")
+pub fn query(deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
+    use QueryMsg::*;
+    match _msg {
+        OrderList{ token_id, contract_address} => to_binary(&query::order_list(deps, token_id, contract_address)?),
+    }
+}
+
+mod query {
+    use super::*;
+    use cosmwasm_std::Addr;
+    pub fn order_list(deps: Deps, id:u32, contract_address: Addr ) -> StdResult<OrderListForERC721>{
+        let list = LIST.load(deps.storage, (id, contract_address))?;
+        Ok(list)
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -123,7 +135,7 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{StdError, Addr};
     use ExecuteMsg::*;
-
+    use QueryMsg::*;
     #[test]
     fn register_execute() {
         let mut deps = mock_dependencies();
@@ -143,10 +155,10 @@ mod tests {
             erc721_token_id: 2,
             amount_of_erc20_want: 200,
         };
+        
         let msg = Register {
             list_for_seller: list,
         };
-
         let res = execute(
             deps.as_mut(),
             env.clone(),
@@ -154,8 +166,19 @@ mod tests {
             msg.clone(),
         );
         assert_eq!(res, Ok(Response::new()));
+        
         let res = execute(deps.as_mut(), env, mock_info("owner", &[]), msg);
         assert_eq!(res, Err(StdError::generic_err("token is already present")));
+
+        let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
+        let result = query(deps.as_ref(), mock_env(), msg).unwrap();
+        let a = OrderListForERC721{
+            owner: Addr::unchecked("owner")  ,
+            contract_address: Addr::unchecked("contract_erc721"),
+            erc721_token_id:2,
+            amount_of_erc20_want: 200
+        };
+        assert_eq!(result,to_binary(&a).unwrap());
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use cosmwasm_schema::{cw_serde};
+use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Addr;
 
 #[cw_serde]
@@ -26,4 +26,11 @@ pub struct OrderListForERC20 {
     pub amount_of_erc20: u32,
     pub erc721_token_id_want: u32,
     pub erc721_contract_address: Addr,
+}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsg {
+    #[returns(OrderListForERC721)]
+    OrderList { token_id: u32, contract_address: Addr}
 }
