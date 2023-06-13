@@ -49,25 +49,23 @@ mod execute {
                 list_for_seller.erc721_token_id.clone(),
                 list_for_seller.contract_address.clone(),
             ),
-        );
+        ).ok().ok_or_else(|| {
+            LIST.save(
+                deps.storage,
+                (
+                    list_for_seller.erc721_token_id.clone(),
+                    list_for_seller.contract_address.clone(),
+                ),
+                &list_for_seller,
+            )
+        });
 
-        match curr {
-            Ok(_) => {
-                return Err(StdError::generic_err("token is already present"));
-            }
-
-            Err(_) => {
-                LIST.save(
-                    deps.storage,
-                    (
-                        list_for_seller.erc721_token_id.clone(),
-                        list_for_seller.contract_address.clone(),
-                    ),
-                    &list_for_seller,
-                )?;
-            }
+        if curr == Err(Ok(())) {
+            return Ok(Response::new());
         }
-        Ok(Response::new())
+
+        return Err(StdError::generic_err("token is already present"));
+        
     }
 
     pub fn exchange(deps: DepsMut, list_for_buyer: OrderListForERC20) -> StdResult<Response> {
@@ -162,7 +160,6 @@ mod tests {
             msg.clone(),
         );
         assert_eq!(res, Ok(Response::new()));
-
         let res = execute(deps.as_mut(), env, mock_info("owner", &[]), msg);
         assert_eq!(res, Err(StdError::generic_err("token is already present")));
     }
