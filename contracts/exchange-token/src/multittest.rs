@@ -98,7 +98,8 @@ mod multest {
             highest_bid: 200,
             time: Timestamp::from_seconds(60*60),
             highest_bidder: Addr::unchecked(""),
-            erc20_amount_after_time: 0
+            erc20_amount_after_time: 0,
+            dutch_auction: false
         };
         let msg = Register {
             list_for_seller: list,

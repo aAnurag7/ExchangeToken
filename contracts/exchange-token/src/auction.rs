@@ -90,4 +90,20 @@ pub mod auction {
 
         exchange(deps, list_for_buyer, curr_list.clone(), curr_list.highest_bid)
     }
+
+    pub fn clean(deps: DepsMut, env: Env, list_for_seller: OrderListForERC721) -> StdResult<Response> {
+        let curr_list = LIST.load(deps.storage, (list_for_seller.erc721_token_id, list_for_seller.contract_address))?;
+
+        if curr_list.time >= env.block.time {
+            return Err(StdError::generic_err("bid is not over yet" ));
+        }
+
+        if !curr_list.dutch_auction {
+            return Err(StdError::generic_err("token must be in dutch token list" ));
+        }
+
+        LIST.remove(deps.storage, (curr_list.erc721_token_id, curr_list.contract_address));
+
+        Ok(Response::new())
+    }
 }

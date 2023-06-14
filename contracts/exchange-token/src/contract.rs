@@ -48,6 +48,7 @@ pub fn execute(
         Exchange { list_for_buyer } => execute::exchange(deps, list_for_buyer),
         EnglishBidRegister { list_for_buyer } => auction::english_auction(deps, env, list_for_buyer),
         ExchangeEnglishBid { list_for_buyer } => auction::english_bid_exchange(deps, info, env, list_for_buyer),
+        Clean {list_for_seller} => auction::clean(deps, env,  list_for_seller),
     }
 }
 
@@ -124,7 +125,8 @@ mod tests {
             highest_bid: 200,
             time: Timestamp::from_seconds(0),
             highest_bidder: Addr::unchecked(""),
-            erc20_amount_after_time: 0
+            erc20_amount_after_time: 0,
+            dutch_auction: false
         };
         
         let msg = Register {
@@ -150,7 +152,8 @@ mod tests {
             highest_bid: 200,
             time: Timestamp::from_seconds(0),
             highest_bidder: Addr::unchecked(""),
-            erc20_amount_after_time: 0
+            erc20_amount_after_time: 0,
+            dutch_auction: false
         };
         assert_eq!(result,to_binary(&a).unwrap());
     }
@@ -167,7 +170,8 @@ mod tests {
             highest_bid: 200,
             time: Timestamp::from_seconds(0),
             highest_bidder: Addr::unchecked(""),
-            erc20_amount_after_time: 0
+            erc20_amount_after_time: 0,
+            dutch_auction: false
         };
         let msg = Register {
             list_for_seller: list.clone(),

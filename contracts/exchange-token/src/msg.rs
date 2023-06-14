@@ -14,6 +14,9 @@ pub enum ExecuteMsg {
     },
     ExchangeEnglishBid {
         list_for_buyer: OrderListForERC20
+    },
+    Clean {
+        list_for_seller: OrderListForERC721
     }
 }
 
@@ -25,7 +28,8 @@ pub struct OrderListForERC721 {
     pub highest_bid: u64,
     pub time: Timestamp,
     pub highest_bidder: Addr,
-    pub erc20_amount_after_time: u64
+    pub erc20_amount_after_time: u64,
+    pub dutch_auction: bool,
 }
 
 #[cw_serde]
