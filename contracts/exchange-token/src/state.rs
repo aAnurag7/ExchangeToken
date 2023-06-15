@@ -1,6 +1,6 @@
 use cw_storage_plus::{Map};
-use crate::msg::OrderListForERC721;
+use crate::msg::OrderListForSeller;
 use cosmwasm_std::Addr;
 
-pub const LIST: Map<(u64, Addr), OrderListForERC721> = Map::new("list");
+pub const LIST: Map<(u64, Addr), OrderListForSeller> = Map::new("list");
 

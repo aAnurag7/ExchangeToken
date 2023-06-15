@@ -1,4 +1,4 @@
-use crate::msg::{OrderListForERC20, OrderListForERC721, AuctionType::*};
+use crate::msg::{OrderListForBuyer, OrderListForSeller, ExchangeTokenStruct, AuctionType::*, TokenType::*};
 use crate::helper::exchange;
 use crate::state::LIST;
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response,
@@ -12,7 +12,7 @@ pub mod auction {
     pub fn dutch_auction_exchange(
         deps: DepsMut,
         env: Env,
-        list_for_buyer: OrderListForERC20,
+        list_for_buyer: OrderListForBuyer,
     ) -> StdResult<Response> {
         let curr_list = LIST.load(
             deps.storage,
@@ -44,13 +44,22 @@ pub mod auction {
             return Err(StdError::generic_err("erc20 token amount is low"));
         }
 
-        exchange(deps, list_for_buyer, curr_list, current_erc20_amount)
+        exchange(deps, ExchangeTokenStruct {
+            erc20_token_sender: if curr_list.sell_token_type == ERC721 { list_for_buyer.owner.clone() } else{ curr_list.owner.clone() },
+            erc20_token_reciever: if curr_list.sell_token_type == ERC721 {curr_list.owner.clone() } else { list_for_buyer.owner.clone() },
+            erc721_token_sender: if curr_list.sell_token_type == ERC721 { curr_list.owner.clone() } else { list_for_buyer.owner.clone() },
+            erc721_token_reciever: if curr_list.sell_token_type == ERC721 { list_for_buyer.owner.clone() } else { curr_list.owner.clone() }, 
+            erc20_contract_address: if curr_list.sell_token_type == ERC721 {list_for_buyer.contract_address.clone() } else { curr_list.contract_address.clone() },
+            erc721_contract_address: if curr_list.sell_token_type == ERC721 { curr_list.contract_address.clone() } else {list_for_buyer.contract_address },
+            token_id: curr_list.erc721_token_id,
+            erc20_amount: curr_list.highest_bid
+        })
     }
 
     pub fn english_auction(
         deps: DepsMut,
         env: Env,
-        list_for_buyer: OrderListForERC20,
+        list_for_buyer: OrderListForBuyer,
     ) -> StdResult<Response> {
         LIST.update(
             deps.storage,
@@ -75,7 +84,7 @@ pub mod auction {
                     }
                 }
 
-                Ok(OrderListForERC721 {
+                Ok(OrderListForSeller {
                     highest_bid: list_for_buyer.amount_of_erc20,
                     highest_bidder: list_for_buyer.owner,
                     ..res.unwrap()
@@ -90,7 +99,7 @@ pub mod auction {
         deps: DepsMut,
         info: MessageInfo,
         env: Env,
-        list_for_buyer: OrderListForERC20,
+        list_for_buyer: OrderListForBuyer,
     ) -> StdResult<Response> {
         let curr_list = LIST.load(
             deps.storage,
@@ -117,10 +126,20 @@ pub mod auction {
             return Err(StdError::generic_err("sell and buy token type does not match"));
         }
 
-        exchange(deps, list_for_buyer, curr_list.clone(), curr_list.highest_bid)
+        exchange(deps, ExchangeTokenStruct {
+            erc20_token_sender: if curr_list.sell_token_type == ERC721 { list_for_buyer.owner.clone() } else{ curr_list.owner.clone() },
+            erc20_token_reciever: if curr_list.sell_token_type == ERC721 {curr_list.owner.clone() } else { list_for_buyer.owner.clone() },
+            erc721_token_sender: if curr_list.sell_token_type == ERC721 { curr_list.owner.clone() } else { list_for_buyer.owner.clone() },
+            erc721_token_reciever: if curr_list.sell_token_type == ERC721 { list_for_buyer.owner.clone() } else { curr_list.owner.clone() }, 
+            erc20_contract_address: if curr_list.sell_token_type == ERC721 {list_for_buyer.contract_address.clone() } else { curr_list.contract_address.clone() },
+            erc721_contract_address: if curr_list.sell_token_type == ERC721 { curr_list.contract_address.clone() } else {list_for_buyer.contract_address },
+            token_id: curr_list.erc721_token_id,
+            erc20_amount: curr_list.highest_bid
+        })
+
     }
 
-    pub fn clean(deps: DepsMut, env: Env, list_for_seller: OrderListForERC721) -> StdResult<Response> {
+    pub fn clean(deps: DepsMut, env: Env, list_for_seller: OrderListForSeller) -> StdResult<Response> {
         let curr_list = LIST.load(deps.storage, (list_for_seller.erc721_token_id, list_for_seller.contract_address))?;
 
         if curr_list.end_time >= env.block.height {
@@ -141,7 +160,7 @@ pub mod auction {
 mod auction_test {
     use super::*;
     use crate::contract::*;
-    use crate::msg::{ExecuteMsg::*, QueryMsg::*, TokenType::*};
+    use crate::msg::{ExecuteMsg::*, QueryMsg::*};
     use cosmwasm_std::{testing::{mock_dependencies, mock_env, mock_info}, Addr, Empty, to_binary, CosmosMsg ,SubMsg, WasmMsg, Uint128};
     use cw20::Cw20ExecuteMsg;
     use cw721::Cw721ExecuteMsg;
@@ -158,7 +177,7 @@ mod auction_test {
             )
             .unwrap();
     
-            let list = OrderListForERC721 {
+            let list = OrderListForSeller {
                 owner: Addr::unchecked("seller"),
                 contract_address: Addr::unchecked("contract_erc721"),
                 erc721_token_id: 2,
@@ -184,7 +203,7 @@ mod auction_test {
     
             let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
             let result = query(deps.as_ref(), mock_env(), msg).unwrap();
-            let a = OrderListForERC721{
+            let a = OrderListForSeller{
                 owner: Addr::unchecked("seller")  ,
                 contract_address: Addr::unchecked("contract_erc721"),
                 erc721_token_id:2,
@@ -199,7 +218,7 @@ mod auction_test {
             assert_eq!(result,to_binary(&a).unwrap());
 
             let msg = EnglishAuction { 
-                list_for_buyer: OrderListForERC20 { 
+                list_for_buyer: OrderListForBuyer { 
                     owner: Addr::unchecked("buyer"), 
                     contract_address: Addr::unchecked("contract_erc20"), 
                     amount_of_erc20: 250, 
@@ -220,7 +239,7 @@ mod auction_test {
             let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
 
             let result = query(deps.as_ref(), mock_env(), msg).unwrap();
-            let a = OrderListForERC721{
+            let a = OrderListForSeller{
                 owner: Addr::unchecked("seller")  ,
                 contract_address: Addr::unchecked("contract_erc721"),
                 erc721_token_id:2,
@@ -248,7 +267,7 @@ mod auction_test {
             )
             .unwrap();
     
-            let list = OrderListForERC721 {
+            let list = OrderListForSeller {
                 owner: Addr::unchecked("seller"),
                 contract_address: Addr::unchecked("contract_erc721"),
                 erc721_token_id: 2,
@@ -272,7 +291,7 @@ mod auction_test {
             );
 
             let msg = EnglishAuction { 
-                list_for_buyer: OrderListForERC20 { 
+                list_for_buyer: OrderListForBuyer { 
                     owner: Addr::unchecked("buyer"), 
                     contract_address: Addr::unchecked("contract_erc20"), 
                     amount_of_erc20: 250, 
@@ -289,7 +308,7 @@ mod auction_test {
                 msg.clone(),
             );
 
-            let list_for_buyer = OrderListForERC20 { 
+            let list_for_buyer = OrderListForBuyer { 
                 owner: Addr::unchecked("buyer"), 
                 contract_address: Addr::unchecked("contract_erc20"), 
                 amount_of_erc20: 250, 
@@ -371,7 +390,7 @@ mod auction_test {
             )
             .unwrap();
     
-            let list = OrderListForERC721 {
+            let list = OrderListForSeller {
                 owner: Addr::unchecked("seller"),
                 contract_address: Addr::unchecked("contract_erc721"),
                 erc721_token_id: 2,
@@ -399,7 +418,7 @@ mod auction_test {
             let result = query(deps.as_ref(), mock_env(), msg).unwrap();
             assert_eq!(result,to_binary(&list.clone()).unwrap());
 
-            let list_for_buyer = OrderListForERC20 { 
+            let list_for_buyer = OrderListForBuyer { 
                 owner: Addr::unchecked("buyer"), 
                 contract_address: Addr::unchecked("contract_erc20"), 
                 amount_of_erc20: 200, 
@@ -468,7 +487,7 @@ mod auction_test {
         )
         .unwrap();
 
-        let list = OrderListForERC721 {
+        let list = OrderListForSeller {
             owner: Addr::unchecked("seller"),
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id: 2,
@@ -502,6 +521,6 @@ mod auction_test {
 
         let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
         let result = query(deps.as_ref(), mock_env(), msg).unwrap_err();
-        assert_eq!(result, StdError::NotFound { kind: "exchange_token::msg::OrderListForERC721".to_string() });
+        assert_eq!(result, StdError::NotFound { kind: "exchange_token::msg::OrderListForSeller".to_string() });
     }
 }

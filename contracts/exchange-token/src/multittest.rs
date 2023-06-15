@@ -4,7 +4,7 @@ mod multest {
     use cw_multi_test::{App, ContractWrapper, Executor};
     use crate::contract::{execute, instantiate, query};
     use cosmwasm_std::{Addr, Empty, Uint128, testing::mock_env};
-    use crate::msg::{ExecuteMsg::* ,OrderListForERC20, OrderListForERC721, AuctionType::*, TokenType::*};
+    use crate::msg::{ExecuteMsg::* ,OrderListForBuyer, OrderListForSeller, AuctionType::*, TokenType::*};
 
     use cw20_base::{ msg::{ExecuteMsg as cw20_executeMsg, InstantiateMsg as cw20_instantiateMsg, QueryMsg as cw20_queryMsg} ,contract::{execute as cw20execute , query as cw20query, instantiate as cw20instantiate}};
     use cw20::{Cw20Coin, BalanceResponse};
@@ -92,7 +92,7 @@ mod multest {
         &[],
         );
 
-        let list = OrderListForERC721 {
+        let list = OrderListForSeller {
             owner: seller.clone(),
             contract_address:addr_cw721.clone(),
             erc721_token_id: 2,
@@ -110,7 +110,7 @@ mod multest {
 
         let _resp = app.execute_contract(Addr::unchecked(exchange_owner.clone()), addr.clone(), &msg, &[]).unwrap();
 
-        let list = OrderListForERC20 {
+        let list = OrderListForBuyer {
             owner: buyer.clone(),
             contract_address: addr_cw20.clone(),
             amount_of_erc20: 200,

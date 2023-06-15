@@ -4,22 +4,22 @@ use cosmwasm_std::Addr;
 #[cw_serde]
 pub enum ExecuteMsg {
     Register {
-        list_for_seller: OrderListForERC721
+        list_for_seller: OrderListForSeller
     },
     Exchange {
-        list_for_buyer: OrderListForERC20
+        list_for_buyer: OrderListForBuyer
     },
     EnglishAuction {
-        list_for_buyer: OrderListForERC20
+        list_for_buyer: OrderListForBuyer
     },
     ExchangeEnglishBid {
-        list_for_buyer: OrderListForERC20
+        list_for_buyer: OrderListForBuyer
     },
     DutchExchange {
-        list_for_buyer: OrderListForERC20
+        list_for_buyer: OrderListForBuyer
     },
     Clean {
-        list_for_seller: OrderListForERC721
+        list_for_seller: OrderListForSeller
     }
 }
 
@@ -34,7 +34,7 @@ pub enum TokenType {
 }
 
 #[cw_serde]
-pub struct OrderListForERC721 {
+pub struct OrderListForSeller {
     pub owner: Addr,
     pub contract_address: Addr,
     pub highest_bidder: Addr,
@@ -48,7 +48,7 @@ pub struct OrderListForERC721 {
 }
 
 #[cw_serde]
-pub struct OrderListForERC20 {
+pub struct OrderListForBuyer {
     pub owner:Addr,
     pub contract_address: Addr,
     pub amount_of_erc20: u64,
@@ -58,8 +58,20 @@ pub struct OrderListForERC20 {
 }
 
 #[cw_serde]
+pub struct ExchangeTokenStruct {
+    pub erc20_token_sender: Addr,
+    pub erc20_token_reciever: Addr,
+    pub erc721_token_sender: Addr,
+    pub erc721_token_reciever: Addr,
+    pub erc20_contract_address: Addr,
+    pub erc721_contract_address: Addr,
+    pub token_id: u64,
+    pub erc20_amount: u64
+}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(OrderListForERC721)]
+    #[returns(OrderListForSeller)]
     OrderList { token_id: u64, contract_address: Addr}
 }

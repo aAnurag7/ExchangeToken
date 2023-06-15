@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod auction_multitest {
     use crate::contract::{execute, instantiate, query};
-    use crate::msg::{ExecuteMsg::*, OrderListForERC20, OrderListForERC721, QueryMsg, AuctionType::*, TokenType::*};
+    use crate::msg::{ExecuteMsg::*, OrderListForBuyer, OrderListForSeller, QueryMsg, AuctionType::*, TokenType::*};
     use cosmwasm_std::{testing::mock_env, Addr, Empty, Uint128};
     use cw_multi_test::{App, ContractWrapper, Executor};
 
@@ -121,7 +121,7 @@ mod auction_multitest {
             &[],
         );
 
-        let list = OrderListForERC721 {
+        let list = OrderListForSeller {
             owner: seller.clone(),
             contract_address: addr_cw721.clone(),
             erc721_token_id: 2,
@@ -146,7 +146,7 @@ mod auction_multitest {
             )
             .unwrap();
 
-        let list = OrderListForERC20 {
+        let list = OrderListForBuyer {
             owner: buyer.clone(),
             contract_address: addr_cw20.clone(),
             amount_of_erc20: 250,
@@ -160,7 +160,7 @@ mod auction_multitest {
 
         let _resp = app.execute_contract(buyer.clone(), addr.clone(), &msg, &[]);
 
-        let resp: OrderListForERC721 = app
+        let resp: OrderListForSeller = app
             .wrap()
             .query_wasm_smart(
                 addr,
@@ -173,7 +173,7 @@ mod auction_multitest {
 
         assert_eq!(
             resp,
-            OrderListForERC721 {
+            OrderListForSeller {
                 owner: seller.clone(),
                 contract_address: addr_cw721.clone(),
                 erc721_token_id: 2,
@@ -287,7 +287,7 @@ mod auction_multitest {
             &[],
         );
 
-        let list = OrderListForERC721 {
+        let list = OrderListForSeller {
             owner: seller.clone(),
             contract_address: addr_cw721.clone(),
             erc721_token_id: 2,
@@ -312,7 +312,7 @@ mod auction_multitest {
             )
             .unwrap();
 
-        let list = OrderListForERC20 {
+        let list = OrderListForBuyer {
             owner: buyer.clone(),
             contract_address: addr_cw20.clone(),
             amount_of_erc20: 250,
