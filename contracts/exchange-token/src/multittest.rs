@@ -4,7 +4,7 @@ mod multest {
     use cw_multi_test::{App, ContractWrapper, Executor};
     use crate::contract::{execute, instantiate, query};
     use cosmwasm_std::{Addr, Empty, Uint128, testing::mock_env};
-    use crate::msg::{ExecuteMsg::* ,OrderListForERC20, OrderListForERC721};
+    use crate::msg::{ExecuteMsg::* ,OrderListForERC20, OrderListForERC721, AuctionType::*, TokenType::*};
 
     use cw20_base::{ msg::{ExecuteMsg as cw20_executeMsg, InstantiateMsg as cw20_instantiateMsg, QueryMsg as cw20_queryMsg} ,contract::{execute as cw20execute , query as cw20query, instantiate as cw20instantiate}};
     use cw20::{Cw20Coin, BalanceResponse};
@@ -101,7 +101,8 @@ mod multest {
             start_time: env.block.height + 2,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
-            dutch_auction: false
+            auction_type: Fixed,
+            sell_token_type: ERC721
         };
         let msg = Register {
             list_for_seller: list.clone(),
@@ -114,7 +115,8 @@ mod multest {
             contract_address: addr_cw20.clone(),
             amount_of_erc20: 200,
             erc721_token_id_want: 2,
-            erc721_contract_address: addr_cw721.clone()
+            erc721_contract_address: addr_cw721.clone(),
+            buy_token_type: ERC721
         };
         let msg = Exchange {
             list_for_buyer: list,

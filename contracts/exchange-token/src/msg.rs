@@ -24,16 +24,27 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
+pub enum AuctionType {
+    Fixed, English, Dutch
+}
+
+#[cw_serde]
+pub enum TokenType {
+    ERC20, ERC721
+}
+
+#[cw_serde]
 pub struct OrderListForERC721 {
     pub owner: Addr,
     pub contract_address: Addr,
+    pub highest_bidder: Addr,
     pub erc721_token_id: u64,
     pub highest_bid: u64,
     pub end_time: u64,
     pub start_time: u64,
-    pub highest_bidder: Addr,
     pub erc20_amount_after_time: u64,
-    pub dutch_auction: bool,
+    pub auction_type: AuctionType,
+    pub sell_token_type: TokenType
 }
 
 #[cw_serde]
@@ -43,6 +54,7 @@ pub struct OrderListForERC20 {
     pub amount_of_erc20: u64,
     pub erc721_token_id_want: u64,
     pub erc721_contract_address: Addr,
+    pub buy_token_type: TokenType
 }
 
 #[cw_serde]

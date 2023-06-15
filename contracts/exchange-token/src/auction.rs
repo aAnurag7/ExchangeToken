@@ -1,4 +1,4 @@
-use crate::msg::{OrderListForERC20, OrderListForERC721};
+use crate::msg::{OrderListForERC20, OrderListForERC721, AuctionType::*};
 use crate::helper::exchange;
 use crate::state::LIST;
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response,
@@ -6,6 +6,7 @@ use cosmwasm_std::{DepsMut, Env, MessageInfo, Response,
 };
 
 pub mod auction {
+
     use super::*;
     
     pub fn dutch_auction_exchange(
@@ -21,8 +22,12 @@ pub mod auction {
             ),
         )?;
 
-        if !curr_list.dutch_auction {
-            return Err(StdError::generic_err("dutch_exchange should be true"));
+        if curr_list.auction_type != Dutch {
+            return Err(StdError::generic_err("token is not in dutch auction"));
+        }
+
+        if curr_list.sell_token_type != list_for_buyer.buy_token_type {
+            return Err(StdError::generic_err("sell and buy token type does not match"));
         }
 
         if curr_list.end_time < env.block.height {
@@ -64,6 +69,10 @@ pub mod auction {
                     if res.clone().unwrap().end_time < env.block.height {
                         return Err(StdError::generic_err("auction has ended"));
                     }
+
+                    if res.clone().unwrap().sell_token_type != list_for_buyer.buy_token_type {
+                        return Err(StdError::generic_err("sell and buy token type does not match"));
+                    }
                 }
 
                 Ok(OrderListForERC721 {
@@ -99,6 +108,15 @@ pub mod auction {
             return Err(StdError::generic_err("auction is not over"));
         }
 
+
+        if curr_list.auction_type != English {
+            return Err(StdError::generic_err("token is not in english auction"));
+        }
+
+        if curr_list.sell_token_type != list_for_buyer.buy_token_type {
+            return Err(StdError::generic_err("sell and buy token type does not match"));
+        }
+
         exchange(deps, list_for_buyer, curr_list.clone(), curr_list.highest_bid)
     }
 
@@ -109,8 +127,8 @@ pub mod auction {
             return Err(StdError::generic_err("auction is not over yet" ));
         }
 
-        if !curr_list.dutch_auction {
-            return Err(StdError::generic_err("token must be in dutch token list" ));
+        if curr_list.auction_type != Dutch {
+            return Err(StdError::generic_err("token must in dutch token list"));
         }
 
         LIST.remove(deps.storage, (curr_list.erc721_token_id, curr_list.contract_address));
@@ -123,7 +141,7 @@ pub mod auction {
 mod auction_test {
     use super::*;
     use crate::contract::*;
-    use crate::msg::{ExecuteMsg::*, QueryMsg::*};
+    use crate::msg::{ExecuteMsg::*, QueryMsg::*, TokenType::*};
     use cosmwasm_std::{testing::{mock_dependencies, mock_env, mock_info}, Addr, Empty, to_binary, CosmosMsg ,SubMsg, WasmMsg, Uint128};
     use cw20::Cw20ExecuteMsg;
     use cw721::Cw721ExecuteMsg;
@@ -149,7 +167,8 @@ mod auction_test {
                 start_time: env.block.height,
                 highest_bidder: Addr::unchecked(""),
                 erc20_amount_after_time: 0,
-                dutch_auction: false
+                auction_type: English,
+                sell_token_type: ERC721
             };
             
             let msg = Register {
@@ -174,7 +193,8 @@ mod auction_test {
                 start_time: env.block.height,
                 highest_bidder: Addr::unchecked(""),
                 erc20_amount_after_time: 0,
-                dutch_auction: false
+                auction_type: English,
+                sell_token_type: ERC721
             };
             assert_eq!(result,to_binary(&a).unwrap());
 
@@ -184,7 +204,8 @@ mod auction_test {
                     contract_address: Addr::unchecked("contract_erc20"), 
                     amount_of_erc20: 250, 
                     erc721_token_id_want: 2, 
-                    erc721_contract_address: Addr::unchecked("contract_erc721") 
+                    erc721_contract_address: Addr::unchecked("contract_erc721"),
+                    buy_token_type: ERC721
                 }
             };
 
@@ -208,7 +229,8 @@ mod auction_test {
                 start_time: env.block.height,
                 highest_bidder: Addr::unchecked("buyer"),
                 erc20_amount_after_time: 0,
-                dutch_auction: false
+                auction_type: English,
+                sell_token_type: ERC721
             };
             assert_eq!(result,to_binary(&a).unwrap());
     }
@@ -235,7 +257,8 @@ mod auction_test {
                 start_time: env.block.height,
                 highest_bidder: Addr::unchecked(""),
                 erc20_amount_after_time: 0,
-                dutch_auction: false
+                auction_type: English,
+                sell_token_type: ERC721
             };
             
             let msg = Register {
@@ -254,7 +277,8 @@ mod auction_test {
                     contract_address: Addr::unchecked("contract_erc20"), 
                     amount_of_erc20: 250, 
                     erc721_token_id_want: 2, 
-                    erc721_contract_address: Addr::unchecked("contract_erc721") 
+                    erc721_contract_address: Addr::unchecked("contract_erc721"),
+                    buy_token_type:ERC721
                 }
             };
 
@@ -270,7 +294,8 @@ mod auction_test {
                 contract_address: Addr::unchecked("contract_erc20"), 
                 amount_of_erc20: 250, 
                 erc721_token_id_want: 2, 
-                erc721_contract_address: Addr::unchecked("contract_erc721") 
+                erc721_contract_address: Addr::unchecked("contract_erc721"),
+                buy_token_type: ERC721
             };
 
             let msg = ExchangeEnglishBid { 
@@ -355,7 +380,8 @@ mod auction_test {
                 start_time: env.block.height,
                 highest_bidder: Addr::unchecked(""),
                 erc20_amount_after_time: 60,
-                dutch_auction: true
+                auction_type: Dutch,
+                sell_token_type: ERC721
             };
             
             let msg = Register {
@@ -378,7 +404,8 @@ mod auction_test {
                 contract_address: Addr::unchecked("contract_erc20"), 
                 amount_of_erc20: 200, 
                 erc721_token_id_want: 2, 
-                erc721_contract_address: Addr::unchecked("contract_erc721") 
+                erc721_contract_address: Addr::unchecked("contract_erc721"),
+                buy_token_type: ERC721
             };
 
             let msg = DutchExchange {                 
@@ -450,7 +477,8 @@ mod auction_test {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 60,
-            dutch_auction: true
+            auction_type: Dutch,
+            sell_token_type: ERC721
         };
         
         let msg = Register {

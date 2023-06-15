@@ -92,6 +92,10 @@ mod execute {
             return Err(StdError::generic_err("ERC20 token amount not matched"));
         }
 
+        if curr_list.sell_token_type != list_for_buyer.buy_token_type {
+            return Err(StdError::generic_err("sell and buy token type does not match"));
+        }
+
         helper::exchange(deps, list_for_buyer.clone(), curr_list, list_for_buyer.amount_of_erc20)
     }
 }
@@ -99,7 +103,7 @@ mod execute {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msg::ExecuteMsg;
+    use crate::msg::{ExecuteMsg, AuctionType::*, TokenType::*};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{StdError, Addr, SubMsg, WasmMsg};
     use cw20::Cw20ExecuteMsg;
@@ -128,7 +132,8 @@ mod tests {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
-            dutch_auction: false
+            auction_type: Fixed,
+            sell_token_type: ERC721
         };
         
         let msg = Register {
@@ -156,7 +161,8 @@ mod tests {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
-            dutch_auction: false
+            auction_type: Fixed,
+            sell_token_type: ERC721
         };
         assert_eq!(result,to_binary(&a).unwrap());
     }
@@ -175,7 +181,8 @@ mod tests {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
-            dutch_auction: false
+            auction_type: Fixed,
+            sell_token_type: ERC721
         };
         let msg = Register {
             list_for_seller: list.clone(),
@@ -194,7 +201,8 @@ mod tests {
             contract_address: Addr::unchecked("ERC20contract"),
             amount_of_erc20: 200,
             erc721_token_id_want: 2,
-            erc721_contract_address: Addr::unchecked("contract_erc721")
+            erc721_contract_address: Addr::unchecked("contract_erc721"),
+            buy_token_type: ERC721
         };
 
         let msg = Exchange {

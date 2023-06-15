@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod auction_multitest {
     use crate::contract::{execute, instantiate, query};
-    use crate::msg::{ExecuteMsg::*, OrderListForERC20, OrderListForERC721, QueryMsg};
+    use crate::msg::{ExecuteMsg::*, OrderListForERC20, OrderListForERC721, QueryMsg, AuctionType::*, TokenType::*};
     use cosmwasm_std::{testing::mock_env, Addr, Empty, Uint128};
     use cw_multi_test::{App, ContractWrapper, Executor};
 
@@ -130,7 +130,8 @@ mod auction_multitest {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
-            dutch_auction: false,
+            auction_type: English,
+            sell_token_type: ERC721
         };
         let msg = Register {
             list_for_seller: list.clone(),
@@ -151,6 +152,7 @@ mod auction_multitest {
             amount_of_erc20: 250,
             erc721_token_id_want: 2,
             erc721_contract_address: addr_cw721.clone(),
+            buy_token_type: ERC721
         };
         let msg = EnglishAuction {
             list_for_buyer: list.clone(),
@@ -180,7 +182,8 @@ mod auction_multitest {
                 start_time: env.block.height,
                 highest_bidder: buyer,
                 erc20_amount_after_time: 0,
-                dutch_auction: false
+                auction_type: English,
+                sell_token_type: ERC721
             }
         );
     }
@@ -293,7 +296,8 @@ mod auction_multitest {
             start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 60,
-            dutch_auction: true,
+            auction_type: Dutch,
+            sell_token_type: ERC721
         };
         let msg = Register {
             list_for_seller: list.clone(),
@@ -314,6 +318,7 @@ mod auction_multitest {
             amount_of_erc20: 250,
             erc721_token_id_want: 2,
             erc721_contract_address: addr_cw721.clone(),
+            buy_token_type: ERC721
         };
         let msg = DutchExchange { list_for_buyer: list.clone() };
 
