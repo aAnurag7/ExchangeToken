@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Timestamp};
+use cosmwasm_std::Addr;
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -9,10 +9,13 @@ pub enum ExecuteMsg {
     Exchange {
         list_for_buyer: OrderListForERC20
     },
-    EnglishBidRegister {
+    EnglishAuction {
         list_for_buyer: OrderListForERC20
     },
     ExchangeEnglishBid {
+        list_for_buyer: OrderListForERC20
+    },
+    DutchExchange {
         list_for_buyer: OrderListForERC20
     },
     Clean {
@@ -26,7 +29,8 @@ pub struct OrderListForERC721 {
     pub contract_address: Addr,
     pub erc721_token_id: u64,
     pub highest_bid: u64,
-    pub time: Timestamp,
+    pub end_time: u64,
+    pub start_time: u64,
     pub highest_bidder: Addr,
     pub erc20_amount_after_time: u64,
     pub dutch_auction: bool,

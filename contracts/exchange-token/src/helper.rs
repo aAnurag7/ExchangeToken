@@ -42,7 +42,7 @@ pub fn exchange(deps:DepsMut, list_for_buyer: OrderListForERC20, curr_list: Orde
         .add_attribute("action", "transfer")
         .add_attribute("from", list_for_buyer.owner.clone())
         .add_attribute("to", curr_list.owner.clone())
-        .add_attribute("amount", list_for_buyer.amount_of_erc20.to_string())
+        .add_attribute("amount", current_erc20_amount.to_string())
         .add_attribute("action", "transfer_erc721")
         .add_attribute("sender", curr_list.owner)
         .add_attribute("recipient", list_for_buyer.owner)

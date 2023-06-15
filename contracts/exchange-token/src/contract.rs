@@ -46,8 +46,9 @@ pub fn execute(
     match msg {
         Register { list_for_seller } => execute::register(deps, list_for_seller),
         Exchange { list_for_buyer } => execute::exchange(deps, list_for_buyer),
-        EnglishBidRegister { list_for_buyer } => auction::english_auction(deps, env, list_for_buyer),
+        EnglishAuction { list_for_buyer } => auction::english_auction(deps, env, list_for_buyer),
         ExchangeEnglishBid { list_for_buyer } => auction::english_bid_exchange(deps, info, env, list_for_buyer),
+        DutchExchange { list_for_buyer } => auction::dutch_auction_exchange(deps, env, list_for_buyer),
         Clean {list_for_seller} => auction::clean(deps, env,  list_for_seller),
     }
 }
@@ -100,7 +101,7 @@ mod tests {
     use super::*;
     use crate::msg::ExecuteMsg;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{StdError, Addr, Timestamp, SubMsg, WasmMsg};
+    use cosmwasm_std::{StdError, Addr, SubMsg, WasmMsg};
     use cw20::Cw20ExecuteMsg;
     use cw721::Cw721ExecuteMsg;
     use ExecuteMsg::*;
@@ -123,7 +124,8 @@ mod tests {
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id: 2,
             highest_bid: 200,
-            time: Timestamp::from_seconds(0),
+            end_time: env.block.height+ 2,
+            start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
             dutch_auction: false
@@ -140,7 +142,7 @@ mod tests {
         );
         assert_eq!(res, Ok(Response::new()));
         
-        let res = execute(deps.as_mut(), env, mock_info("owner", &[]), msg);
+        let res = execute(deps.as_mut(), env.clone(), mock_info("owner", &[]), msg);
         assert_eq!(res, Err(StdError::generic_err("token is already present")));
 
         let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
@@ -150,7 +152,8 @@ mod tests {
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id:2,
             highest_bid: 200,
-            time: Timestamp::from_seconds(0),
+            end_time: env.block.height + 2,
+            start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
             dutch_auction: false
@@ -164,11 +167,12 @@ mod tests {
         let env = mock_env();
 
         let list = OrderListForERC721 {
-            owner: Addr::unchecked("owner"),
+            owner: Addr::unchecked("seller"),
             contract_address: Addr::unchecked("contract_erc721"),
             erc721_token_id: 2,
             highest_bid: 200,
-            time: Timestamp::from_seconds(0),
+            end_time: env.block.height,
+            start_time: env.block.height,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
             dutch_auction: false
@@ -180,7 +184,7 @@ mod tests {
         let res = execute(
             deps.as_mut(),
             env.clone(),
-            mock_info("owner", &[]),
+            mock_info("seller", &[]),
             msg.clone(),
         );
         assert_eq!(res, Ok(Response::new()));
@@ -239,5 +243,9 @@ mod tests {
             .add_submessages(exec);
 
             assert_eq!(resp.unwrap(),res_func);
+
+            let msg = OrderList{ token_id: 2, contract_address: Addr::unchecked("contract_erc721")};
+            let result = query(deps.as_ref(), mock_env(), msg).unwrap_err();
+            assert_eq!(result, StdError::NotFound { kind: "exchange_token::msg::OrderListForERC721".to_string() });
     }
 }

@@ -3,8 +3,8 @@
 mod multest {
     use cw_multi_test::{App, ContractWrapper, Executor};
     use crate::contract::{execute, instantiate, query};
-    use cosmwasm_std::{Addr, Empty, Uint128, Timestamp};
-    use crate::msg::{ExecuteMsg::*, OrderListForERC20, OrderListForERC721};
+    use cosmwasm_std::{Addr, Empty, Uint128, testing::mock_env};
+    use crate::msg::{ExecuteMsg::* ,OrderListForERC20, OrderListForERC721};
 
     use cw20_base::{ msg::{ExecuteMsg as cw20_executeMsg, InstantiateMsg as cw20_instantiateMsg, QueryMsg as cw20_queryMsg} ,contract::{execute as cw20execute , query as cw20query, instantiate as cw20instantiate}};
     use cw20::{Cw20Coin, BalanceResponse};
@@ -16,6 +16,7 @@ mod multest {
      #[test]
     fn multitest() {
         let mut app = App::default();
+        let env = mock_env();
 
         let code = ContractWrapper::new(execute, instantiate, query);
         let code_id = app.store_code(Box::new(code));
@@ -96,13 +97,14 @@ mod multest {
             contract_address:addr_cw721.clone(),
             erc721_token_id: 2,
             highest_bid: 200,
-            time: Timestamp::from_seconds(60*60),
+            end_time: env.block.height,
+            start_time: env.block.height + 2,
             highest_bidder: Addr::unchecked(""),
             erc20_amount_after_time: 0,
             dutch_auction: false
         };
         let msg = Register {
-            list_for_seller: list,
+            list_for_seller: list.clone(),
         };
 
         let _resp = app.execute_contract(Addr::unchecked(exchange_owner.clone()), addr.clone(), &msg, &[]).unwrap();
